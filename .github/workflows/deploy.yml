@@ -1,0 +1,49 @@
+name: 自动部署博客到GitHub Pages
+
+# 触发条件：向main分支提交代码时自动运行，同时支持手动触发
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# GitHub Pages 部署所需权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # 任务1：构建静态网站
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取仓库代码
+        uses: actions/checkout@v4
+
+      - name: 配置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: 安装MkDocs
+        run: pip install mkdocs
+
+      - name: 构建静态站点
+        run: mkdocs build
+
+      - name: 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+  # 任务2：部署到GitHub Pages
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 执行部署
+        id: deployment
+        uses: actions/deploy-pages@v4
